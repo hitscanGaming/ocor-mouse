@@ -171,3 +171,11 @@ jobs:
               --title "Release QA: $VERSION" \
               --body-file /tmp/checklist.md \
               --label "release-qa"
+
+  summary:
+    needs: [build, publish-draft, deploy-pages, qa-issue]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Release ${{ needs.build.outputs.version }} built, draft published, web deployed, QA issue opened."
+          echo "Next: QA closes the issue with all boxes ticked → promote-release.yml flips draft to published."
