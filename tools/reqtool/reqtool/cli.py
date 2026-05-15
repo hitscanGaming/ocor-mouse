@@ -29,21 +29,67 @@ def lint(reqs_dir: str) -> None:
 
 @main.command()
 @click.option("--reqs-dir", default="docs/requirements")
-@click.option("--root", default=".", help="Repo root to grep for REQ-ID references.")
-@click.option("--output", default="-", help="Output file (- for stdout).")
-def trace(reqs_dir: str, root: str, output: str) -> None:
+@click.option("--root", default=".")
+@click.option("--diff/--no-diff", default=False)
+@click.option("--base", default="origin/main")
+@click.option("--output", default="-")
+def trace(reqs_dir: str, root: str, diff: bool, base: str, output: str) -> None:
     """Build traceability matrix linking REQs to code and tests."""
     from pathlib import Path
+    import subprocess
+    import tempfile
     from reqtool.trace import build_traceability_matrix
     from reqtool.render import render_matrix_markdown
+    from reqtool.diff import diff_matrices, matrix_to_refset
 
-    matrix = build_traceability_matrix(Path(reqs_dir), Path(root))
-    md = render_matrix_markdown(matrix)
-    if output == "-":
-        click.echo(md)
+    matrix_after = build_traceability_matrix(Path(reqs_dir), Path(root))
+
+    if not diff:
+        out = render_matrix_markdown(matrix_after)
     else:
-        Path(output).write_text(md, encoding="utf-8")
+        # git-worktree out the base ref to a temp dir, build matrix there, diff
+        with tempfile.TemporaryDirectory() as td:
+            subprocess.check_call(["git", "worktree", "add", "--detach", td, base])
+            try:
+                matrix_before = build_traceability_matrix(
+                    Path(td) / reqs_dir, Path(td)
+                )
+            finally:
+                subprocess.check_call(["git", "worktree", "remove", "--force", td])
+        d = diff_matrices(matrix_to_refset(matrix_before), matrix_to_refset(matrix_after))
+        out = _render_diff_markdown(d, base)
+
+    if output == "-":
+        click.echo(out)
+    else:
+        Path(output).write_text(out, encoding="utf-8")
         click.echo(f"wrote {output}", err=True)
+
+
+def _render_diff_markdown(d, base: str) -> str:
+    lines = [f"# Traceability diff vs `{base}`", ""]
+    if d.added:
+        lines += ["## New requirements referenced", ""]
+        for rid in d.added:
+            lines.append(f"- `{rid}`")
+        lines.append("")
+    if d.removed:
+        lines += ["## Requirements no longer referenced", ""]
+        for rid in d.removed:
+            lines.append(f"- `{rid}`")
+        lines.append("")
+    if d.changed:
+        lines += ["## Reference counts changed", ""]
+        for rid, rd in d.changed.items():
+            lines.append(f"### {rid}")
+            for a in sorted(rd.added):
+                lines.append(f"- ✚ `{a}`")
+            for r in sorted(rd.removed):
+                lines.append(f"- ✖ `{r}`")
+            lines.append("")
+    if not (d.added or d.removed or d.changed):
+        lines.append("_No traceability changes in this PR._")
+    return "\n".join(lines) + "\n"
 
 
 @main.command()
@@ -94,10 +140,20 @@ def checklist(reqs_dir: str, root: str, tag: str, products: str, output: str) ->
 @click.option("--reqs-dir", default="docs/requirements")
 @click.option("--root", default=".")
 @click.option("--tag", required=True)
-def report(reqs_dir: str, root: str, tag: str) -> None:
+@click.option("--output", default="-")
+def report(reqs_dir: str, root: str, tag: str, output: str) -> None:
     """Emit the full release traceability report (markdown)."""
-    click.echo(f"report: {reqs_dir} root={root} tag={tag} (stub)")
-    sys.exit(0)
+    from pathlib import Path
+    from reqtool.trace import build_traceability_matrix
+    from reqtool.report import build_report
+
+    matrix = build_traceability_matrix(Path(reqs_dir), Path(root))
+    md = build_report(matrix, tag=tag)
+    if output == "-":
+        click.echo(md)
+    else:
+        Path(output).write_text(md, encoding="utf-8")
+        click.echo(f"wrote {output}", err=True)
 
 
 if __name__ == "__main__":
