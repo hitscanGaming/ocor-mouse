@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Razor Stats Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.263.1"
+        }
+    }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import {
+            BarChart3,
+            Zap,
+            Scissors,
+            Battery,
+            Calendar,
+            ChevronRight,
+            Bluetooth,
+            User,
+            Activity,
+            HeartPulse
+        } from 'lucide-react';
+
+        // Mock Data (English Labels)
+        const MOCK_DATA = {
+        week: [
+        { label: 'Mon', count: 12, power: 15 },
+        { label: 'Tue', count: 8, power: 10 },
+        { label: 'Wed', count: 15, power: 22 },
+        { label: 'Thu', count: 20, power: 28 },
+        { label: 'Fri', count: 25, power: 35 },
+        { label: 'Sat', count: 32, power: 45 },
+        { label: 'Sun', count: 28, power: 40 },
+        ],
+        month: [
+        { label: 'W1', count: 98, power: 140 },
+        { label: 'W2', count: 105, power: 155 },
+        { label: 'W3', count: 112, power: 160 },
+        { label: 'W4', count: 89, power: 120 },
+        ],
+        quarter: [
+        { label: 'Jan', count: 420, power: 600 },
+        { label: 'Feb', count: 380, power: 550 },
+        { label: 'Mar', count: 450, power: 680 },
+        ],
+        };
+
+        const RazorStatsApp = () => {
+        const [timeframe, setTimeframe] = useState('week');
+        const [metric, setMetric] = useState('count');
+        const [activeTab, setActiveTab] = useState('stats');
+        const [isConnected, setIsConnected] = useState(true);
+        const [batteryLevel, setBatteryLevel] = useState(85);
+
+        const currentData = MOCK_DATA[timeframe];
+
+        // Calculate max value with some padding
+        const maxValue = Math.max(...currentData.map(d => d[metric])) * 1.2;
+
+        const totalCount = currentData.reduce((acc, curr) => acc + curr.count, 0);
+        const totalPower = currentData.reduce((acc, curr) => acc + curr.power, 0);
+
+        // --- SVG Path Generation Logic ---
+        const generatePath = (data, metric, width, height) => {
+        if (data.length === 0) return '';
+        const points = data.map((d, i) => {
+        const x = (i / (data.length - 1)) * width;
+        const y = height - (d[metric] / maxValue) * height;
+        return `${x},${y}`;
+        });
+        return points.join(' ');
+        };
+
+        const generateAreaPath = (data, metric, width, height) => {
+        const linePath = generatePath(data, metric, width, height);
+        return `${linePath} ${width},${height} 0,${height}`;
+        };
+
+        return (
+        <div
+            className="min-h-screen bg-gray-900 text-gray-100 font-sans pb-24 selection:bg-blue-500 selection:text-white overflow-hidden relative">
+            {/* Top Navigation */}
+            <div
+                className="sticky top-0 z-40 bg-gray-900/95 backdrop-blur-md border-b border-gray-800 px-4 py-3 flex justify-between items-center shadow-md">
+                <div className="flex items-center gap-2">
+                    <div
+                        className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/50">
+                        <Scissors size={18} className="text-white transform -rotate-45" />
+                    </div>
+                    <span className="font-bold text-lg tracking-wide text-white">SmartRazor Pro</span>
+                </div>
+                <div onClick={()=> setIsConnected(!isConnected)}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer
+                    transition-all ${
+                    isConnected
+                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                    }`}
+                    >
+                    <Bluetooth size={12} />
+                    {isConnected ? 'Connected' : 'Disconnect'}
+                </div>
+            </div>
+
+            <div className="p-4 space-y-6">
+
+                {/* Device Status Card */}
+                <div
+                    className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-5 border border-gray-700 relative overflow-hidden shadow-xl">
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl"></div>
+
+                    <div className="flex justify-between items-start mb-5 relative z-10">
+                        <div>
+                            <h2 className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-1">Device Status</h2>
+                            <p className="text-xl font-bold text-white tracking-tight">Series 9 Pro+</p>
+                        </div>
+                        <div
+                            className="flex items-center gap-2 bg-gray-900/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-gray-700">
+                            <Battery size={16} className={batteryLevel < 20 ? 'text-red-500' : 'text-green-500' } />
+                            <span className="text-sm font-mono font-bold">{batteryLevel}%</span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 relative z-10">
+                        <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700/50">
+                            <p className="text-xs text-gray-400 mb-2">Blade Life</p>
+                            <div className="w-full bg-gray-700 h-1.5 rounded-full mb-1">
+                                <div className="bg-green-500 h-1.5 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]" style={{
+                                    width: '92%' }}></div>
+                            </div>
+                            <p className="text-right text-[10px] text-green-400 font-medium">92% Remaining</p>
+                        </div>
+
+                        <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700/50">
+                            <p className="text-xs text-gray-400 mb-1">Battery Health</p>
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className="relative flex h-5 w-5 items-center justify-center bg-blue-500/20 rounded-full">
+                                    <HeartPulse size={12} className="text-blue-400" />
+                                </span>
+                                <span className="text-sm text-blue-400 font-bold">100%</span>
+                                <span className="text-[10px] text-gray-500">Good</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Stats Control Area */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold flex items-center gap-2 text-white">
+                            <BarChart3 size={20} className="text-blue-500" />
+                            Statistics
+                        </h3>
+
+                        <div className="flex bg-gray-800 rounded-lg p-1 border border-gray-700">
+                            {['week', 'month', 'quarter'].map((t) => (
+                            <button key={t} onClick={()=> setTimeframe(t)}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                                timeframe === t
+                                ? 'bg-gray-700 text-white shadow-sm ring-1 ring-gray-600'
+                                : 'text-gray-400 hover:text-gray-200'
+                                }`}
+                                >
+                                {t === 'week' ? 'Week' : t === 'month' ? 'Month' : 'Quarter'}
+                            </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <button onClick={()=> setMetric('count')}
+                            className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all
+                            relative overflow-hidden ${
+                            metric === 'count'
+                            ? 'bg-blue-600/10 border-blue-500 text-blue-400'
+                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-800/80'
+                            }`}
+                            >
+                            <Scissors size={20} />
+                            <span className="text-sm font-medium">Services</span>
+                            {metric === 'count' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>}
+                        </button>
+                        <button onClick={()=> setMetric('power')}
+                            className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all
+                            relative overflow-hidden ${
+                            metric === 'power'
+                            ? 'bg-orange-600/10 border-orange-500 text-orange-400'
+                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-800/80'
+                            }`}
+                            >
+                            <Zap size={20} />
+                            <span className="text-sm font-medium">Power</span>
+                            {metric === 'power' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500"></div>}
+                        </button>
+                    </div>
+
+                    {/* Main Chart Card */}
+                    <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700 shadow-xl relative">
+                        <div className="flex justify-between items-end mb-8">
+                            <div>
+                                <p className="text-gray-400 text-xs font-medium mb-1">
+                                    {timeframe === 'week' ? 'Last 7 Days' : timeframe === 'month' ? 'Last 4 Weeks' : 'This
+                                    Quarter'} Total
+                                </p>
+                                <p className="text-4xl font-bold text-white tracking-tight">
+                                    {metric === 'count' ? totalCount : totalPower}
+                                    <span className="text-sm font-normal text-gray-500 ml-1.5">
+                                        {metric === 'count' ? 'shaves' : 'mAh'}
+                                    </span>
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-xs text-gray-400">Daily Avg</p>
+                                <p className="text-lg font-semibold text-gray-200">
+                                    {Math.round((metric === 'count' ? totalCount : totalPower) / currentData.length)}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Chart Container */}
+                        <div className="h-52 w-full relative">
+
+                            {/* Grid Lines */}
+                            <div
+                                className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20 pb-[15%]">
+                                {[0, 1, 2, 3, 4].map(i => (
+                                <div key={i} className="w-full border-b border-gray-500 h-0"></div>
+                                ))}
+                            </div>
+
+                            {/* SVG Background (Power mode only) */}
+                            {metric === 'power' && (
+                            <div className="absolute inset-x-0 top-0 h-[85%] z-0">
+                                <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+                                    className="w-full h-full overflow-visible">
+                                    <defs>
+                                        <linearGradient id="gradientPower" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#f97316" stopOpacity="0.4" />
+                                            <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
+                                        </linearGradient>
+                                    </defs>
+                                    <polyline fill="url(#gradientPower)" stroke="none"
+                                        points={generateAreaPath(currentData, 'power' , 100, 100)} />
+                                    <polyline fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round"
+                                        strokeLinejoin="round" points={generatePath(currentData, 'power' , 100, 100)}
+                                        className="drop-shadow-[0_0_4px_rgba(249,115,22,0.6)]" />
+                                </svg>
+                            </div>
+                            )}
+
+                            {/* Data Rendering Layer (HTML Overlay) */}
+                            <div className="absolute inset-0 flex items-end justify-between px-2 z-10">
+                                {currentData.map((item, index) => {
+                                const rawHeightPct = (item[metric] / maxValue) * 100;
+                                const heightPercentage = Math.max(rawHeightPct, 4);
+                                const isMax = item[metric] === Math.max(...currentData.map(d => d[metric]));
+
+                                return (
+                                <div key={index} className="flex flex-col items-center flex-1 h-full justify-end group">
+
+                                    {/* Visual Area (Bar or Marker) */}
+                                    <div className="relative w-full flex justify-center items-end h-[85%]">
+
+                                        {metric === 'count' ? (
+                                        // --- Bar Chart Mode ---
+                                        <div className="w-full flex flex-col justify-end items-center h-full">
+                                            {/* Value displayed on top */}
+                                            <div className="mb-1 text-[10px] font-bold text-blue-300 transition-all duration-500"
+                                                style={{ marginBottom: `${heightPercentage}%`, transform: 'translateY(100%)' }}>
+                                                {item.count}
+                                            </div>
+
+                                            <div className={`absolute bottom-0 w-3 sm:w-5 rounded-t-sm transition-all
+                                                duration-700 ease-out ${ isMax
+                                                ? 'bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]' : 'bg-blue-600/70' }`}
+                                                style={{ height: `${heightPercentage}%` }}></div>
+                                        </div>
+                                        ) : (
+                                        // --- Power Curve Marker Mode ---
+                                        <div className="w-full flex flex-col justify-end items-center h-full relative">
+                                            <div className="absolute w-full flex flex-col items-center transition-all duration-500"
+                                                style={{ bottom: `${(item.power / maxValue) * 100}%` }}>
+                                                {/* Value displayed on top of marker */}
+                                                <div className="mb-2 text-[10px] font-bold text-orange-300">
+                                                    {item.power}
+                                                </div>
+
+                                                <div className={`w-3 h-3 rounded-full border-2 border-orange-400 bg-gray-900
+                                                    z-10 ${isMax ? 'scale-125 shadow-[0_0_8px_rgba(249,115,22,0.8)]' : '' }`}>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        )}
+                                    </div>
+
+                                    {/* Labels */}
+                                    <div className="h-[15%] flex items-center justify-center w-full">
+                                        <span className="text-[10px] text-gray-500 truncate text-center w-full px-0.5 block">
+                                            {item.label}
+                                        </span>
+                                    </div>
+                                </div>
+                                );
+                                })}
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                {/* Detailed Records */}
+                <div>
+                    <h3 className="text-md font-bold text-gray-300 mb-3 flex items-center justify-between">
+                        <span>History</span>
+                        <span
+                            className="text-xs font-normal text-blue-400 flex items-center gap-1 cursor-pointer hover:text-blue-300 transition-colors">
+                            View All
+                            <ChevronRight size={12} />
+                        </span>
+                    </h3>
+                    <div className="space-y-3">
+                        {[1, 2, 3].map((i) => (
+                        <div key={i}
+                            className="bg-gray-800/40 hover:bg-gray-800/60 transition-colors p-3 rounded-xl flex items-center justify-between border border-gray-700/30">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-gray-800 p-2.5 rounded-lg text-gray-400 border border-gray-700">
+                                    <Calendar size={16} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-200">Standard Shave</p>
+                                    <p className="text-xs text-gray-500">Jan 24, 14:30 • 8 mins</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p
+                                    className="text-xs text-orange-400 font-medium flex items-center justify-end gap-1 bg-orange-500/10 px-2 py-1 rounded-md">
+                                    <Zap size={10} /> 12 mAh
+                                </p>
+                            </div>
+                        </div>
+                        ))}
+                    </div>
+                </div>
+
+            </div>
+
+            {/* Bottom Navigation */}
+            <div
+                className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-lg border-t border-gray-800 px-6 py-4 flex justify-between items-center z-30 shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
+                <button onClick={()=> setActiveTab('home')}
+                    className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'home' ? 'text-blue-500' :
+                    'text-gray-600 hover:text-gray-400'}`}
+                    >
+                    <Activity size={22} strokeWidth={activeTab==='home' ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium">Monitor</span>
+                </button>
+                <button onClick={()=> setActiveTab('stats')}
+                    className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'stats' ? 'text-blue-500' :
+                    'text-gray-600 hover:text-gray-400'}`}
+                    >
+                    <BarChart3 size={22} strokeWidth={activeTab==='stats' ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium">Stats</span>
+                </button>
+                <button onClick={()=> setActiveTab('user')}
+                    className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'user' ? 'text-blue-500' :
+                    'text-gray-600 hover:text-gray-400'}`}
+                    >
+                    <User size={22} strokeWidth={activeTab==='user' ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium">Profile</span>
+                </button>
+            </div>
+        </div>
+        );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<RazorStatsApp />);
+    </script>
+</body>
+</html>

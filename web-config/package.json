@@ -1,0 +1,10 @@
+{
+  "name": "ocor-mouse-web-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "preview": "npx serve dist -p 5173"
+  }
+}
