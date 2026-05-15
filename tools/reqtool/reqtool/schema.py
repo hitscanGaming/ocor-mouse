@@ -34,12 +34,22 @@ class Requirement:
 
 
 def parse_requirement(text: str, source: str) -> Requirement:
-    if not text.startswith("---"):
+    # Strip optional UTF-8 BOM
+    if text.startswith("﻿"):
+        text = text[1:]
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].rstrip("\r\n") != "---":
         raise RequirementError(f"{source}: missing frontmatter (file must start with '---')")
-    parts = text.split("---", 2)
-    if len(parts) < 3:
+    # Find the closing '---' on its own line
+    close_idx = None
+    for i in range(1, len(lines)):
+        if lines[i].rstrip("\r\n") == "---":
+            close_idx = i
+            break
+    if close_idx is None:
         raise RequirementError(f"{source}: missing frontmatter close ('---')")
-    front_raw, body = parts[1], parts[2]
+    front_raw = "".join(lines[1:close_idx])
+    body = "".join(lines[close_idx + 1:])
     try:
         front = yaml.safe_load(front_raw) or {}
     except yaml.YAMLError as e:

@@ -56,3 +56,29 @@ def test_id_format_enforced():
 def test_no_frontmatter_raises():
     with pytest.raises(RequirementError, match="missing frontmatter"):
         parse_requirement("plain body, no frontmatter", source="bad.md")
+
+
+def test_parse_handles_dashes_in_body():
+    """A '---' line inside a YAML block scalar must not terminate the frontmatter early."""
+    # NOTE: ID uses REQ-XX-001 (not REQ-X-001 from the original review snippet)
+    # because the schema ID regex requires at least 2 chars in the AREA segment.
+    txt = (
+        "---\n"
+        "id: REQ-XX-001\n"
+        "title: t\n"
+        "status: approved\n"
+        "verification: HIL\n"
+        "priority: P0\n"
+        "owner: o\n"
+        "products: [hitscan]\n"
+        "notes: |\n"
+        "  before\n"
+        "  ---\n"
+        "  after\n"
+        "---\n"
+        "body line\n"
+    )
+    req = parse_requirement(txt, source="x.md")
+    assert req.id == "REQ-XX-001"
+    assert "body line" in req.body
+    assert req.extra["notes"].startswith("before")
