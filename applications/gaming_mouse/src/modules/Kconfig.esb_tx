@@ -1,0 +1,44 @@
+# Kconfig.esb_tx
+
+if DESKTOP_ESB_TX_ENABLE
+
+config DESKTOP_ESB_SUBSCRIBER_REPORT_PRIORITY
+	int "ESB HID reports subscriber priority"
+	default 100
+	range 1 255
+	help
+	  ESB reports subscriber priority. The lower value means the lower
+	  priority in subscription to HID reports. By default, the ESB uses the highest
+	  possible priority.
+
+config DESKTOP_ESB_TX_ACK_INTERVAL_MS
+	int "ACK Interval (ms)"
+	default 100
+	help
+	  Interval in milliseconds to request an ACK from the host.
+	  This is used to check for configuration data sent from the host.
+
+
+config DESKTOP_CONFIG_CHANNEL_ENABLE
+	bool "Enable Desktop Config Channel"
+	default y
+	help
+	  Enables the configuration channel (WebHID) transport over ESB.
+
+# -----------------------------------------------------------------------------
+# Module Log Levels
+# -----------------------------------------------------------------------------
+
+module = ESB_DRIVER
+module-str = ESB Driver
+source "subsys/logging/Kconfig.template.log_config"
+
+module = ESB_STATE
+module-str = ESB State Manager
+source "subsys/logging/Kconfig.template.log_config"
+
+module = ESB_STATE_PM
+module-str = ESB Power Manager
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # DESKTOP_ESB_TX_ENABLE

@@ -1,0 +1,7 @@
+# Kconfig.esb_rx
+
+if DESKTOP_ESB_RX_ENABLE
+
+# RX specific configurations can be added here
+
+endif # DESKTOP_ESB_RX_ENABLE

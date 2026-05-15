@@ -1,0 +1,21 @@
+#
+# Copyright (c) 2024 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig DESKTOP_USERPIN
+	bool "User pin module"
+	default n
+	help
+	  This option enable userpin module.
+
+if DESKTOP_USERPIN
+
+module = DESKTOP_USERPIN
+module-str = USERPIN
+source "subsys/logging/Kconfig.template.log_config"
+
+
+
+endif # DESKTOP_USERPIN

@@ -1,0 +1,44 @@
+# Kconfig.esb
+#
+# Copyright (c) 2019 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menu "ESB configuration"
+
+choice
+	prompt "Select ESB interface"
+	default DESKTOP_ESB_NONE
+
+config DESKTOP_ESB_NONE
+	bool "Disable ESB"
+	help
+	  ESB module is not used.
+
+config DESKTOP_ESB_RX_ENABLE
+	bool "ESB RX"
+	select DESKTOP_ESB_ENABLE
+	help
+	  If selected, esb RX interface is enabled.
+
+config DESKTOP_ESB_TX_ENABLE
+	bool "ESB TX"
+	select DESKTOP_ESB_ENABLE
+	help
+	  If selected, esb TX interface is enabled.
+
+endchoice
+
+config DESKTOP_ESB_ENABLE
+	bool
+	select ESB
+	select APP_EVENT_MANAGER
+	select CLOCK_CONTROL
+	help
+	  Hidden option selected by RX or TX enable.
+
+rsource "Kconfig.esb_tx"
+rsource "Kconfig.esb_rx"
+
+endmenu

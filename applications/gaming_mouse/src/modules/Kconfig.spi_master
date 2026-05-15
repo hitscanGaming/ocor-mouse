@@ -1,0 +1,29 @@
+#
+# Copyright (c) 2024 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig DESKTOP_SPI_MASTER
+	bool "SPI master module"
+	default n
+	help
+	  This option enable spi master module.
+
+if DESKTOP_SPI_MASTER
+
+config DESKTOP_SPI_INTERRUPT_PIN
+	int "SPI interrupt pin number"
+	default 255
+	help
+	  Pin number for SPI interrupt.
+
+
+
+module = DESKTOP_SPI_MASTER
+module-str = SPI_MASTER
+source "subsys/logging/Kconfig.template.log_config"
+
+
+
+endif # DESKTOP_SPI_MASTER
