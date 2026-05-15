@@ -1,0 +1,101 @@
+name: pr
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reqtool:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install reqtool
+        run: pip install -e tools/reqtool
+
+      - name: Lint requirements
+        run: reqtool lint
+
+      - name: Traceability diff vs base
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          reqtool trace --diff --base origin/${{ github.base_ref }} \
+                       --output /tmp/trace-diff.md
+
+      - name: Post PR comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: /tmp/trace-diff.md
+
+  build-ncs:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: mouse-debug
+            board: hitscan_nrf52840
+            conf: prj_esb.conf
+          - target: dongle-ls-debug
+            board: hitscan52820_nrf52820
+            conf: prj.conf
+          - target: dev-dk
+            board: nrf52833dk_nrf52833
+            conf: prj.conf
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-ncs
+      - name: Build ${{ matrix.target }}
+        run: |
+          west build -p auto -b ${{ matrix.board }} applications/gaming_mouse \
+              --sysbuild --build-dir build/${{ matrix.target }} \
+              -- -DCONF_FILE=${{ matrix.conf }}
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: build/${{ matrix.target }}/zephyr/zephyr.{hex,bin,map}
+          retention-days: 7
+
+  build-ch32:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-ch32
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dongle-hs-debug
+          path: dongle-hs-ch32v305/build/*.bin
+          retention-days: 7
+
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+        working-directory: web-config
+      - run: npm run build
+        working-directory: web-config
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-config
+          path: web-config/dist/
+          retention-days: 7
