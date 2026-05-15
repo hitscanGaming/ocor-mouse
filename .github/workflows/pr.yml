@@ -117,3 +117,15 @@ jobs:
           name: web-config
           path: web-config/dist/
           retention-days: 7
+
+  native-sim:
+    runs-on: ubuntu-latest
+    needs: build-ncs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-ncs
+      - name: Run native_sim ztests
+        run: |
+          west build -p auto -b native_sim tests/native_sim/protocol \
+              --build-dir build/native_sim
+          build/native_sim/zephyr/zephyr.exe
