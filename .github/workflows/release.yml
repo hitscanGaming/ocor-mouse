@@ -140,3 +140,34 @@ jobs:
             release-bundle/artifacts/dongle-hs-fw.bin \
             release-bundle/artifacts/manifest.json \
             release-bundle/artifacts/traceability-matrix.md
+
+  # Opens the per-release QA tracking issue. The `release-qa` label must be
+  # bootstrapped once in the repo before the first run; see README/Phase 7.
+  #   gh label create release-qa --color FFD700 \
+  #       --description "Release QA tracking issue"
+  qa-issue:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e tools/reqtool
+
+      - name: Generate checklist
+        run: |
+          reqtool checklist \
+              --tag "${{ needs.build.outputs.version }}" \
+              --products hitscan \
+              --output /tmp/checklist.md
+
+      - name: Open release QA issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.build.outputs.version }}"
+          gh issue create \
+              --title "Release QA: $VERSION" \
+              --body-file /tmp/checklist.md \
+              --label "release-qa"
