@@ -1,0 +1,93 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  issues: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: ver
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - uses: ./.github/actions/setup-ncs
+      - name: Build mouse release
+        run: |
+          west build -p auto -b hitscan_nrf52840 applications/gaming_mouse \
+              --sysbuild --build-dir build/mouse \
+              -- -DCONF_FILE=prj_esb_release.conf
+
+      - name: Build dongle-ls release
+        run: |
+          west build -p auto -b hitscan52820_nrf52820 applications/gaming_mouse \
+              --sysbuild --build-dir build/dongle-ls \
+              -- -DCONF_FILE=prj_release.conf
+
+      - uses: ./.github/actions/setup-ch32
+        with:
+          build-args: release
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts
+          cp build/mouse/gaming_mouse/zephyr/zephyr.hex artifacts/mouse-fw.hex
+          cp build/mouse/gaming_mouse/zephyr/zephyr.signed.bin artifacts/mouse-fw-update.bin
+          cp build/dongle-ls/gaming_mouse/zephyr/zephyr.hex artifacts/dongle-ls-fw.hex
+          cp build/dongle-ls/gaming_mouse/zephyr/zephyr.signed.bin artifacts/dongle-ls-fw-update.bin
+          cp dongle-hs-ch32v305/build/dongle-hs.bin artifacts/dongle-hs-fw.bin
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e tools/reqtool
+
+      - name: Read protocol version
+        id: proto
+        run: |
+          PROTO=$(grep -oP 'OCOR_PROTOCOL_VERSION\s+\K\d+' shared/include/protocol_version.h)
+          echo "version=$PROTO" >> "$GITHUB_OUTPUT"
+
+      - name: Generate manifest
+        run: |
+          python tools/manifest.py \
+              --release "${{ steps.ver.outputs.version }}" \
+              --git-sha "${{ github.sha }}" \
+              --protocol-version "${{ steps.proto.outputs.version }}" \
+              --artifacts-dir artifacts \
+              --output artifacts/manifest.json
+
+      - name: Traceability report
+        run: |
+          reqtool report --tag "${{ steps.ver.outputs.version }}" \
+                        --output artifacts/traceability-matrix.md
+
+      - name: Changelog
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: cliff.toml
+          args: --latest --strip header --output artifacts/CHANGELOG.md
+
+      - name: Bundle zip
+        run: |
+          cd artifacts
+          zip -r "../ocor-mouse-${{ steps.ver.outputs.version }}.zip" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: |
+            artifacts/
+            ocor-mouse-*.zip
