@@ -39,7 +39,7 @@ def trace(reqs_dir: str, root: str, diff: bool, base: str, output: str) -> None:
     import subprocess
     import tempfile
     from reqtool.trace import build_traceability_matrix
-    from reqtool.render import render_matrix_markdown
+    from reqtool.render import render_matrix_markdown, render_diff_markdown
     from reqtool.diff import diff_matrices, matrix_to_refset
 
     matrix_after = build_traceability_matrix(Path(reqs_dir), Path(root))
@@ -57,39 +57,13 @@ def trace(reqs_dir: str, root: str, diff: bool, base: str, output: str) -> None:
             finally:
                 subprocess.check_call(["git", "worktree", "remove", "--force", td])
         d = diff_matrices(matrix_to_refset(matrix_before), matrix_to_refset(matrix_after))
-        out = _render_diff_markdown(d, base)
+        out = render_diff_markdown(d, base)
 
     if output == "-":
         click.echo(out)
     else:
         Path(output).write_text(out, encoding="utf-8")
         click.echo(f"wrote {output}", err=True)
-
-
-def _render_diff_markdown(d, base: str) -> str:
-    lines = [f"# Traceability diff vs `{base}`", ""]
-    if d.added:
-        lines += ["## New requirements referenced", ""]
-        for rid in d.added:
-            lines.append(f"- `{rid}`")
-        lines.append("")
-    if d.removed:
-        lines += ["## Requirements no longer referenced", ""]
-        for rid in d.removed:
-            lines.append(f"- `{rid}`")
-        lines.append("")
-    if d.changed:
-        lines += ["## Reference counts changed", ""]
-        for rid, rd in d.changed.items():
-            lines.append(f"### {rid}")
-            for a in sorted(rd.added):
-                lines.append(f"- ✚ `{a}`")
-            for r in sorted(rd.removed):
-                lines.append(f"- ✖ `{r}`")
-            lines.append("")
-    if not (d.added or d.removed or d.changed):
-        lines.append("_No traceability changes in this PR._")
-    return "\n".join(lines) + "\n"
 
 
 @main.command()
