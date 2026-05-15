@@ -66,13 +66,13 @@ jobs:
       matrix:
         include:
           - target: mouse-debug
-            board: hitscan_nrf52840
+            board: hitscan/nrf52840
             conf: prj_esb.conf
           - target: dongle-ls-debug
-            board: hitscan52820_nrf52820
+            board: hitscan52820/nrf52820
             conf: prj.conf
           - target: dev-dk
-            board: nrf52833dk_nrf52833
+            board: nrf52833dk/nrf52833
             conf: prj.conf
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +81,8 @@ jobs:
         run: |
           west build -p auto -b ${{ matrix.board }} applications/gaming_mouse \
               --sysbuild --build-dir build/${{ matrix.target }} \
-              -- -DCONF_FILE=${{ matrix.conf }}
+              -- -DCONF_FILE=${{ matrix.conf }} \
+                 -DBOARD_ROOT=${{ github.workspace }}/applications/gaming_mouse
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4

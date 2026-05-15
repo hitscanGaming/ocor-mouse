@@ -17,10 +17,10 @@ jobs:
       matrix:
         include:
           - target: mouse-release
-            board: hitscan_nrf52840
+            board: hitscan/nrf52840
             conf: prj_esb_release.conf
           - target: dongle-ls-release
-            board: hitscan52820_nrf52820
+            board: hitscan52820/nrf52820
             conf: prj_release.conf
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +29,8 @@ jobs:
         run: |
           west build -p auto -b ${{ matrix.board }} applications/gaming_mouse \
               --sysbuild --build-dir build/${{ matrix.target }} \
-              -- -DCONF_FILE=${{ matrix.conf }}
+              -- -DCONF_FILE=${{ matrix.conf }} \
+                 -DBOARD_ROOT=${{ github.workspace }}/applications/gaming_mouse
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
