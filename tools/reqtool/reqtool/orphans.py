@@ -17,5 +17,6 @@ def find_orphans(matrix: Matrix) -> OrphanReport:
     for rid, row in matrix.rows.items():
         if row.req.status == "implemented" and not row.references:
             report.unreferenced_implemented.append(rid)
+    report.unreferenced_implemented.sort()
     report.dangling_ids = sorted(matrix.dangling.keys())
     return report
