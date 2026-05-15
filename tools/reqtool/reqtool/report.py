@@ -6,6 +6,9 @@ from collections import Counter
 from reqtool.trace import Matrix
 
 
+_MAX_REFS_PER_REQ = 20  # cap per-req listing to keep reports human-readable
+
+
 def build_report(matrix: Matrix, tag: str) -> str:
     status_counts: Counter[str] = Counter()
     verif_counts: Counter[str] = Counter()
@@ -48,10 +51,10 @@ def build_report(matrix: Matrix, tag: str) -> str:
             f"- References: {len(row.references)}",
             "",
         ]
-        for ref in row.references[:20]:
+        for ref in row.references[:_MAX_REFS_PER_REQ]:
             lines.append(f"  - `{ref.path}:{ref.line}` — {ref.snippet[:80]}")
-        if len(row.references) > 20:
-            lines.append(f"  - ... ({len(row.references) - 20} more)")
+        if len(row.references) > _MAX_REFS_PER_REQ:
+            lines.append(f"  - ... ({len(row.references) - _MAX_REFS_PER_REQ} more)")
         lines.append("")
 
     if matrix.dangling:
