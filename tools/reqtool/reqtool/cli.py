@@ -55,7 +55,10 @@ def trace(reqs_dir: str, root: str, diff: bool, base: str, output: str) -> None:
                     Path(td) / reqs_dir, Path(td)
                 )
             finally:
-                subprocess.check_call(["git", "worktree", "remove", "--force", td])
+                try:
+                    subprocess.check_call(["git", "worktree", "remove", "--force", td])
+                except subprocess.CalledProcessError as e:
+                    click.echo(f"warning: could not remove worktree {td}: {e}", err=True)
         d = diff_matrices(matrix_to_refset(matrix_before), matrix_to_refset(matrix_after))
         out = render_diff_markdown(d, base)
 
