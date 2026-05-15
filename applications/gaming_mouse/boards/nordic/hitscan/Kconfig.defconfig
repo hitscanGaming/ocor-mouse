@@ -1,0 +1,6 @@
+if BOARD_HITSCAN
+
+config BT_CTLR
+	default BT
+
+endif # BOARD_HITSCAN

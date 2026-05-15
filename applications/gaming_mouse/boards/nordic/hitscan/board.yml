@@ -1,0 +1,5 @@
+board:
+  name: hitscan
+  vendor: hitscan
+  socs:
+    - name: nrf52840
