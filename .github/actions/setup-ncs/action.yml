@@ -1,0 +1,92 @@
+# Composite action: set up nRF Connect SDK build environment.
+#
+# Toolchain choice:
+#   The original plan referenced `nrfconnect/action-build-toolchain@v1`, but no
+#   such action exists at a stable, widely-used location in the GitHub Actions
+#   marketplace today. To avoid the risk of a vendor-specific action drifting
+#   or disappearing, we install the Zephyr SDK directly from the official
+#   zephyrproject-rtos/sdk-ng GitHub Releases. This is the approach used by
+#   upstream Zephyr CI and is also the recommended path for NCS in headless
+#   environments (NCS targets `arm-zephyr-eabi`, which ships in the Zephyr SDK
+#   minimal bundle).
+#
+# Pinned versions:
+#   - Zephyr SDK 0.16.8 (compatible with NCS v3.0.x; bump in lock-step with NCS).
+#   - Python 3.11.
+#
+# Caching:
+#   - West module trees (`zephyr/`, `nrf/`, `modules/`, etc.) are cached by the
+#     hash of west.yml so that subsequent runs skip `west update`.
+#   - The Zephyr SDK install is cached by SDK version.
+
+name: Set up nRF Connect SDK
+description: Installs the NCS toolchain, runs west init/update with caching.
+
+runs:
+  using: composite
+  steps:
+    - name: Cache west modules
+      id: west-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          .west/
+          bootloader/
+          modules/
+          nrf/
+          nrfxlib/
+          test/
+          tools/
+          zephyr/
+        key: west-ncs-v3.0.2-${{ runner.os }}-${{ hashFiles('west.yml') }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install west
+      shell: bash
+      run: pip install west
+
+    - name: Install Zephyr build deps
+      shell: bash
+      run: |
+        pip install -r https://raw.githubusercontent.com/nrfconnect/sdk-zephyr/main/scripts/requirements-base.txt
+        pip install pyelftools
+
+    - name: West init + update
+      if: steps.west-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        west init -l .
+        west update --narrow -o=--depth=1
+        west zephyr-export
+
+    - name: Cache Zephyr SDK
+      id: sdk-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/zephyr-sdk
+        key: zephyr-sdk-0.16.8-${{ runner.os }}
+
+    - name: Install Zephyr SDK (arm-zephyr-eabi only)
+      if: steps.sdk-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        SDK_VERSION=0.16.8
+        SDK_DIR="$HOME/zephyr-sdk"
+        mkdir -p "$SDK_DIR"
+        cd "$SDK_DIR"
+        curl -L --fail -o sdk-minimal.tar.xz \
+          "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${SDK_VERSION}/zephyr-sdk-${SDK_VERSION}_linux-x86_64_minimal.tar.xz"
+        tar -xJf sdk-minimal.tar.xz --strip-components=1
+        rm sdk-minimal.tar.xz
+        ./setup.sh -t arm-zephyr-eabi -h -c
+
+    - name: Export Zephyr SDK env
+      shell: bash
+      run: |
+        echo "ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyr-sdk" >> "$GITHUB_ENV"
+        echo "ZEPHYR_TOOLCHAIN_VARIANT=zephyr" >> "$GITHUB_ENV"
