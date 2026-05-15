@@ -30,12 +30,20 @@ def lint(reqs_dir: str) -> None:
 @main.command()
 @click.option("--reqs-dir", default="docs/requirements")
 @click.option("--root", default=".", help="Repo root to grep for REQ-ID references.")
-@click.option("--diff/--no-diff", default=False, help="Output a diff vs. base ref.")
-@click.option("--base", default="origin/main", help="Base ref for diff mode.")
-def trace(reqs_dir: str, root: str, diff: bool, base: str) -> None:
+@click.option("--output", default="-", help="Output file (- for stdout).")
+def trace(reqs_dir: str, root: str, output: str) -> None:
     """Build traceability matrix linking REQs to code and tests."""
-    click.echo(f"trace: {reqs_dir} root={root} diff={diff} base={base} (stub)")
-    sys.exit(0)
+    from pathlib import Path
+    from reqtool.trace import build_traceability_matrix
+    from reqtool.render import render_matrix_markdown
+
+    matrix = build_traceability_matrix(Path(reqs_dir), Path(root))
+    md = render_matrix_markdown(matrix)
+    if output == "-":
+        click.echo(md)
+    else:
+        Path(output).write_text(md, encoding="utf-8")
+        click.echo(f"wrote {output}", err=True)
 
 
 @main.command()
