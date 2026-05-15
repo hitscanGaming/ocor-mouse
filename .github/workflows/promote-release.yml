@@ -1,0 +1,57 @@
+name: promote-release
+
+# Trigger: a "Release QA: vX.Y.Z" issue (label release-qa) is closed.
+# If all checklist boxes are ticked, flip the matching draft Release to
+# published. Otherwise reopen the issue with a comment and fail the run.
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  promote:
+    if: |
+      startsWith(github.event.issue.title, 'Release QA: v') &&
+      contains(join(github.event.issue.labels.*.name), 'release-qa')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all checkboxes ticked
+        id: check
+        env:
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          # Count unchecked GFM task-list boxes ("- [ ]") in the issue body.
+          UNCHECKED=$(printf '%s\n' "$BODY" | grep -c '^- \[ \]' || true)
+          echo "unchecked=$UNCHECKED" >> "$GITHUB_OUTPUT"
+
+      - name: Reopen with reminder if unchecked
+        if: steps.check.outputs.unchecked != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NUM="${{ github.event.issue.number }}"
+          gh issue reopen "$NUM"
+          gh issue comment "$NUM" --body "Cannot promote release: ${{ steps.check.outputs.unchecked }} checkbox(es) still unchecked."
+          exit 1
+
+      - name: Extract version from issue title
+        if: steps.check.outputs.unchecked == '0'
+        id: ver
+        env:
+          TITLE: ${{ github.event.issue.title }}
+        run: |
+          VER=$(echo "$TITLE" | sed -n 's/^Release QA: \(v[0-9.]*\).*/\1/p')
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Promote draft release
+        if: steps.check.outputs.unchecked == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ steps.ver.outputs.version }}" --draft=false
+          gh issue comment "${{ github.event.issue.number }}" \
+              --body "Release ${{ steps.ver.outputs.version }} promoted from draft to published."
