@@ -2,6 +2,9 @@
  * Copyright (c) 2025 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ *
+ * Implements: REQ-RADIO-003
+ * (selectable USB polling rates 1000/2000/4000/8000 Hz for high-speed dongle)
  */
 
 #include "polling_rate.h"

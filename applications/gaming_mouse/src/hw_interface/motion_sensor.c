@@ -2,6 +2,9 @@
  * Copyright (c) 2018-2019 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ *
+ * Implements: REQ-DPI-001, REQ-DPI-002
+ * (PAW3395 motion sensor + DPI step/range enforcement + preset cycling)
  */
 
 #include <zephyr/kernel.h>

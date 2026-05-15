@@ -2,6 +2,9 @@
  * Copyright (c) 2018 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ *
+ * Implements: REQ-POWER-001
+ * (battery measurement reporting; battery life at 1000 Hz polling >= 70 h)
  */
 
 #include <zephyr/types.h>
