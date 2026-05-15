@@ -112,3 +112,31 @@ jobs:
           path: web-config/dist
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  publish-draft:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-bundle
+          path: release-bundle/
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.build.outputs.version }}"
+          gh release create "$VERSION" \
+            --draft \
+            --title "$VERSION" \
+            --notes-file release-bundle/artifacts/CHANGELOG.md \
+            release-bundle/ocor-mouse-*.zip \
+            release-bundle/artifacts/mouse-fw.hex \
+            release-bundle/artifacts/mouse-fw-update.bin \
+            release-bundle/artifacts/dongle-ls-fw.hex \
+            release-bundle/artifacts/dongle-ls-fw-update.bin \
+            release-bundle/artifacts/dongle-hs-fw.bin \
+            release-bundle/artifacts/manifest.json \
+            release-bundle/artifacts/traceability-matrix.md
