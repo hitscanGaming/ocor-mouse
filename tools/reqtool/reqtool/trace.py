@@ -11,7 +11,7 @@ from reqtool.schema import Requirement, RequirementError, parse_requirement
 REQ_ID_RE = re.compile(r"\bREQ-[A-Z][A-Z0-9]+-\d{3}\b")
 
 SCAN_EXTS = {".c", ".h", ".cpp", ".hpp", ".rs", ".py", ".js", ".ts", ".mjs", ".html", ".md"}
-SKIP_DIRS = {"build", "build_*", "node_modules", ".west", "dist", "__pycache__", ".git", ".venv"}
+SKIP_DIRS = {"build", "twister-out", "node_modules", ".west", "dist", "__pycache__", ".git", ".venv"}
 
 
 @dataclass
@@ -47,6 +47,8 @@ def _iter_source_files(root: Path):
             continue
         parts = set(p.parts)
         if parts & SKIP_DIRS:
+            continue
+        if any(part.startswith("build_") for part in p.parts):
             continue
         if "requirements" in p.parts:
             # don't grep the req files themselves as "references" to themselves
