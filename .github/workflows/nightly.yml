@@ -1,0 +1,88 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  build-release-configs:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: mouse-release
+            board: hitscan_nrf52840
+            conf: prj_esb_release.conf
+          - target: dongle-ls-release
+            board: hitscan52820_nrf52820
+            conf: prj_release.conf
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-ncs
+      - name: Build ${{ matrix.target }}
+        run: |
+          west build -p auto -b ${{ matrix.board }} applications/gaming_mouse \
+              --sysbuild --build-dir build/${{ matrix.target }} \
+              -- -DCONF_FILE=${{ matrix.conf }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: build/${{ matrix.target }}/zephyr/zephyr.{hex,bin,map}
+          retention-days: 30
+
+  build-ch32-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-ch32
+        with:
+          build-args: release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dongle-hs-release
+          path: dongle-hs-ch32v305/build/*.bin
+          retention-days: 30
+
+  orphans-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e tools/reqtool
+      - name: Run orphans
+        run: reqtool orphans > /tmp/orphans.txt
+
+      # We use the `gh` CLI instead of `peter-evans/create-or-update-issue` —
+      # the action's identifier is unreliable (no widely-published v3 release
+      # under that exact path) and the CLI gives us straightforward,
+      # idempotent issue management with no third-party dependency.
+      - name: Manage orphans issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TITLE="Requirements orphans report"
+          BODY=$(cat /tmp/orphans.txt)
+          EXISTING=$(gh issue list --state open --search "$TITLE in:title" \
+                       --json number,title \
+                       --jq '.[] | select(.title=="'"$TITLE"'") | .number' \
+                       | head -1)
+          if [[ "$BODY" == *"OK: no orphans"* ]]; then
+            if [[ -n "$EXISTING" ]]; then
+              gh issue close "$EXISTING" --comment "Resolved: no orphans in latest nightly."
+            fi
+          else
+            if [[ -n "$EXISTING" ]]; then
+              gh issue edit "$EXISTING" --body "$BODY"
+            else
+              gh issue create --title "$TITLE" --body "$BODY"
+            fi
+          fi
