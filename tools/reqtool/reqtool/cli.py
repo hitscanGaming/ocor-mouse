@@ -51,18 +51,43 @@ def trace(reqs_dir: str, root: str, output: str) -> None:
 @click.option("--root", default=".")
 def orphans(reqs_dir: str, root: str) -> None:
     """Report implemented REQs with no code references, and dangling code refs."""
-    click.echo(f"orphans: {reqs_dir} root={root} (stub)")
-    sys.exit(0)
+    from pathlib import Path
+    from reqtool.trace import build_traceability_matrix
+    from reqtool.orphans import find_orphans
+
+    matrix = build_traceability_matrix(Path(reqs_dir), Path(root))
+    rep = find_orphans(matrix)
+    if rep.unreferenced_implemented:
+        click.echo("Implemented but unreferenced:")
+        for rid in rep.unreferenced_implemented:
+            click.echo(f"  - {rid}")
+    if rep.dangling_ids:
+        click.echo("Dangling REQ-IDs in code (no matching requirement):")
+        for rid in rep.dangling_ids:
+            click.echo(f"  - {rid}")
+    if not rep.unreferenced_implemented and not rep.dangling_ids:
+        click.echo("OK: no orphans")
 
 
 @main.command()
 @click.option("--reqs-dir", default="docs/requirements")
-@click.option("--tag", required=True, help="Release tag (e.g. v1.0.0).")
-@click.option("--products", default="hitscan", help="Comma-separated products in this release.")
-def checklist(reqs_dir: str, tag: str, products: str) -> None:
+@click.option("--root", default=".")
+@click.option("--tag", required=True)
+@click.option("--products", default="hitscan")
+@click.option("--output", default="-")
+def checklist(reqs_dir: str, root: str, tag: str, products: str, output: str) -> None:
     """Emit a QA checklist (markdown) for verification=HIL REQs in this release."""
-    click.echo(f"checklist: {reqs_dir} tag={tag} products={products} (stub)")
-    sys.exit(0)
+    from pathlib import Path
+    from reqtool.trace import build_traceability_matrix
+    from reqtool.checklist import build_checklist
+
+    matrix = build_traceability_matrix(Path(reqs_dir), Path(root))
+    md = build_checklist(matrix, tag=tag, products=products.split(","))
+    if output == "-":
+        click.echo(md)
+    else:
+        Path(output).write_text(md, encoding="utf-8")
+        click.echo(f"wrote {output}", err=True)
 
 
 @main.command()
