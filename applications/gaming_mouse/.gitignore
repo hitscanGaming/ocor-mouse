@@ -1,0 +1,32 @@
+# Build artifacts
+build*/
+*.hex
+*.bin
+*.elf
+*.map
+*.o
+*.a
+*.cpio.gz
+*.out
+*.dts.out
+
+# Zephyr/West specific
+.west/
+zephyr/
+modules/
+tools/
+bootloader/
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+*.log

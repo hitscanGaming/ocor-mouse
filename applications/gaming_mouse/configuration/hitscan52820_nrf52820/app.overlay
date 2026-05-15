@@ -1,0 +1,106 @@
+/ {
+	chosen {
+		zephyr,bt-hci = &bt_hci_controller;
+	};
+
+	/* Configure DTS nodes used for USB next HID support. */
+	// hid_dev_0: hid_dev_0 {
+		//     compatible = "zephyr,hid-device";
+		//     interface-name = "HID0";
+		//     protocol-code = "none";
+		//     in-polling-period-us = <1000>;
+		//     in-report-size = <64>;
+	// };
+	// hid_dev_1: hid_dev_1 {
+		//     compatible = "zephyr,hid-device";
+		//     interface-name = "HID1";
+		//     protocol-code = "none";
+		//     in-polling-period-us = <1000>;
+		//     in-report-size = <64>;
+	// };
+
+	gpioled0 {
+		compatible = "gpio-leds";
+		status = "okay";
+		label = "LED Peer State";
+
+		led1_b: led_1 {
+			gpios = <&gpio0 29 GPIO_ACTIVE_LOW>;
+			label = "Blue LED 1";
+		};
+		led1_g: led_2 {
+			gpios = <&gpio0 30 GPIO_ACTIVE_LOW>;
+			label = "Green LED 1";
+		};
+		led1_r: led_3 {
+			gpios = <&gpio0 28 GPIO_ACTIVE_LOW>;
+			label = "Red LED 1";
+		};
+
+	};
+	leds {
+		status = "okay";
+	};
+
+	/* These aliases are provided for compatibility with samples */
+	aliases {
+		led1 = &led1_b;
+		led2 = &led1_g;
+		led3 = &led1_r;
+		led1-red   = &led1_r;
+		led1-green = &led1_g;
+		led1-blue  = &led1_b;
+		watchdog0 = &wdt0;
+	};
+};
+
+
+// By default uart1 will occupy P1.01 and P1.02. In order to make these pins available, disable uart1
+// &uart1 {
+	//     status = "disabled";
+// };
+
+// &bt_hci_controller {
+	//     status = "okay";
+// };
+
+&bt_hci_sdc {
+	status = "disabled";
+};
+
+&pinctrl {
+
+	spi0_default: spi0_default {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 0, 6)>,
+			        <NRF_PSEL(SPIM_MOSI, 0, 4)>,
+			        <NRF_PSEL(SPIM_MISO, 0, 5)>;
+		};
+	};
+
+	spi0_sleep: spi0_sleep {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 0, 6)>,
+			        <NRF_PSEL(SPIM_MOSI, 0, 4)>,
+			        <NRF_PSEL(SPIM_MISO, 0, 5)>;
+			low-power-enable;
+		};
+	};
+};
+
+&spi0 {
+	compatible = "nordic,nrf-spim";
+	status = "okay";
+	pinctrl-0 = <&spi0_default>;
+	pinctrl-1 = <&spi0_sleep>;
+	pinctrl-names = "default", "sleep";
+	cs-gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
+	// max-frequency = <8000000>;
+	master: master@0 {
+		reg = <0>;
+	};
+};
+
+&timer3 {
+	status = "okay";
+};

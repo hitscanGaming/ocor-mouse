@@ -1,0 +1,44 @@
+#
+# Copyright (c) 2025 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig POLLING_RATE_ENABLE
+	bool "Enable polling rate timer module"
+	default y if DESKTOP_MOTION_SENSOR_ENABLE
+	help
+	  Enable the polling rate timer module for high-frequency
+	  sensor polling using hardware counters.
+
+if POLLING_RATE_ENABLE
+
+config POLLING_RATE_TIMER_LABEL
+	string "Devicetree node label for timer"
+	default "timer3"
+	help
+	  Devicetree node label for the counter/timer device used
+	  for polling rate generation.
+
+config POLLING_RATE_DEFAULT_HZ
+	int "Default polling rate (Hz)"
+	default 1000
+	range 125 8000
+	help
+	  Default polling rate in Hz.
+
+config POLLING_RATE_MIN_HZ
+	int "Minimum polling rate (Hz)"
+	default 125
+	range 1 1000
+	help
+	  Minimum allowed polling rate in Hz.
+
+config POLLING_RATE_MAX_HZ
+	int "Maximum polling rate (Hz)"
+	default 8000
+	range 1000 16000
+	help
+	  Maximum allowed polling rate in Hz.
+
+endif # POLLING_RATE_ENABLE
