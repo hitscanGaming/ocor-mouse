@@ -1,0 +1,36 @@
+# build outputs
+build/
+build_*/
+twister-out/
+*.elf
+*.hex
+*.bin
+*.map
+*.zip
+
+# west
+.west/
+
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+
+# node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# secrets that should never be in git (dev keys ARE in repo; production keys must NOT be)
+*.key
+!keys/*.dev.pem
+
+# OS junk
+.DS_Store
+Thumbs.db
