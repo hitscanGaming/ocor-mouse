@@ -15,8 +15,16 @@ def main() -> None:
 @click.option("--reqs-dir", default="docs/requirements", help="Requirements directory.")
 def lint(reqs_dir: str) -> None:
     """Validate requirement frontmatter (schema, unique IDs, allowed enum values)."""
-    click.echo(f"lint: {reqs_dir} (stub)")
-    sys.exit(0)
+    from pathlib import Path
+    from reqtool.lint import lint_directory
+
+    errors = lint_directory(Path(reqs_dir))
+    if errors:
+        for e in errors:
+            click.echo(f"ERROR: {e}", err=True)
+        click.echo(f"\n{len(errors)} error(s) in {reqs_dir}", err=True)
+        sys.exit(1)
+    click.echo(f"OK: {reqs_dir} (lint passed)")
 
 
 @main.command()
