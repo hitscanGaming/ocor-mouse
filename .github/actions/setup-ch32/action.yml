@@ -1,0 +1,18 @@
+name: Set up CH32 RISC-V toolchain
+description: Builds and runs the WCH RISC-V build in a pinned container.
+
+inputs:
+  build-args:
+    description: "Extra args for `make`."
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Build inside CH32 container
+      shell: bash
+      run: |
+        docker build -t ch32-toolchain:local .github/actions/setup-ch32
+        docker run --rm -v "$PWD:/work" -w /work/dongle-hs-ch32v305 \
+            ch32-toolchain:local \
+            make ${{ inputs.build-args }}
