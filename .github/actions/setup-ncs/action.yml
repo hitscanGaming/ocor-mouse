@@ -25,20 +25,12 @@ description: Installs the NCS toolchain, runs west init/update with caching.
 runs:
   using: composite
   steps:
-    - name: Cache west modules
-      id: west-cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          .west/
-          bootloader/
-          modules/
-          nrf/
-          nrfxlib/
-          test/
-          tools/
-          zephyr/
-        key: west-ncs-v3.0.2-${{ runner.os }}-${{ hashFiles('west.yml') }}
+    # Note: west modules are NOT cached. The NCS gaming_mouse application
+    # uses the "manifest repo as a subdirectory" layout, so `west init -l .`
+    # creates the workspace ONE level above the checkout, putting nrf/, zephyr/,
+    # modules/ etc. as siblings of the checkout — outside actions/cache's
+    # accessible paths. A `--narrow -o=--depth=1` west update is ~2 min, which
+    # is the cost of correctness here.
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -55,29 +47,12 @@ runs:
         pip install -r https://raw.githubusercontent.com/nrfconnect/sdk-zephyr/main/scripts/requirements-base.txt
         pip install pyelftools
 
-    - name: West init (only if no workspace exists)
+    - name: West init + update + zephyr-export
       shell: bash
-      # `west init -l .` would create a NEW workspace at $PWD/.. even when a
-      # cached `.west/` already exists in $PWD, breaking subsequent commands.
-      # Only init when `west list` fails (no workspace anywhere up the tree).
       run: |
-        if west list >/dev/null 2>&1; then
-          echo "west workspace already initialized; skipping init"
-        else
-          west init -l .
-        fi
-
-    - name: West update (skipped on cache hit)
-      if: steps.west-cache.outputs.cache-hit != 'true'
-      shell: bash
-      run: west update --narrow -o=--depth=1
-
-    - name: West zephyr-export (always)
-      # Required every run: registers Zephyr with CMake's package registry
-      # so `find_package(Zephyr)` resolves. The registry lives in $HOME and
-      # is NOT cached.
-      shell: bash
-      run: west zephyr-export
+        west init -l .
+        west update --narrow -o=--depth=1
+        west zephyr-export
 
     - name: Cache Zephyr SDK
       id: sdk-cache
