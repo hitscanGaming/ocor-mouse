@@ -30,7 +30,8 @@ jobs:
           west build -p auto -b ${{ matrix.board }} applications/gaming_mouse \
               --sysbuild --build-dir build/${{ matrix.target }} \
               -- -DCONF_FILE=${{ matrix.conf }} \
-                 -DBOARD_ROOT=${{ github.workspace }}/applications/gaming_mouse
+                 -DBOARD_ROOT=${{ github.workspace }}/applications/gaming_mouse \
+                 -DZEPHYR_EXTRA_MODULES=${{ github.workspace }}/modules/paw3395
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}

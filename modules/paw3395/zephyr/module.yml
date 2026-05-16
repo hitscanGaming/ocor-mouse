@@ -1,0 +1,4 @@
+name: paw3395
+build:
+  cmake: zephyr
+  kconfig: zephyr/Kconfig

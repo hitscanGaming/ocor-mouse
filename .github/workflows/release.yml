@@ -27,14 +27,16 @@ jobs:
           west build -p auto -b hitscan/nrf52840 applications/gaming_mouse \
               --sysbuild --build-dir build/mouse \
               -- -DCONF_FILE=prj_esb_release.conf \
-                 -DBOARD_ROOT=${{ github.workspace }}/applications/gaming_mouse
+                 -DBOARD_ROOT=${{ github.workspace }}/applications/gaming_mouse \
+                 -DZEPHYR_EXTRA_MODULES=${{ github.workspace }}/modules/paw3395
 
       - name: Build dongle-ls release
         run: |
           west build -p auto -b hitscan52820/nrf52820 applications/gaming_mouse \
               --sysbuild --build-dir build/dongle-ls \
               -- -DCONF_FILE=prj_release.conf \
-                 -DBOARD_ROOT=${{ github.workspace }}/applications/gaming_mouse
+                 -DBOARD_ROOT=${{ github.workspace }}/applications/gaming_mouse \
+                 -DZEPHYR_EXTRA_MODULES=${{ github.workspace }}/modules/paw3395
 
       - uses: ./.github/actions/setup-ch32
         with:
