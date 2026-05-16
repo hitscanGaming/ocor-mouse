@@ -55,12 +55,17 @@ runs:
         pip install -r https://raw.githubusercontent.com/nrfconnect/sdk-zephyr/main/scripts/requirements-base.txt
         pip install pyelftools
 
-    - name: West init (idempotent)
+    - name: West init (only if no workspace exists)
       shell: bash
-      # `west init -l .` is cheap and harmless if .west/ already exists
-      # (it errors out, which we swallow). Always run so the workspace is
-      # registered even after a cache hit.
-      run: west init -l . 2>/dev/null || true
+      # `west init -l .` would create a NEW workspace at $PWD/.. even when a
+      # cached `.west/` already exists in $PWD, breaking subsequent commands.
+      # Only init when `west list` fails (no workspace anywhere up the tree).
+      run: |
+        if west list >/dev/null 2>&1; then
+          echo "west workspace already initialized; skipping init"
+        else
+          west init -l .
+        fi
 
     - name: West update (skipped on cache hit)
       if: steps.west-cache.outputs.cache-hit != 'true'
