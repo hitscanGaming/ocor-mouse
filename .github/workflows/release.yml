@@ -7,8 +7,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
   issues: write
 
 jobs:
@@ -94,12 +92,14 @@ jobs:
             artifacts/
             ocor-mouse-*.zip
 
+  # Publishes web-config/dist/ to the public companion repo `ocor-mouse-config`'s
+  # `gh-pages` branch. That repo serves GitHub Pages at
+  # https://hitscangaming.github.io/ocor-mouse-config/.
+  # Auth: CONFIG_DEPLOY_KEY secret (ed25519 private key) — paired with a write-
+  # access deploy key installed on ocor-mouse-config.
   deploy-pages:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -109,11 +109,14 @@ jobs:
         working-directory: web-config
       - run: npm run build
         working-directory: web-config
-      - uses: actions/upload-pages-artifact@v3
+      - name: Publish to ocor-mouse-config
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          path: web-config/dist
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          deploy_key: ${{ secrets.CONFIG_DEPLOY_KEY }}
+          external_repository: hitscanGaming/ocor-mouse-config
+          publish_branch: gh-pages
+          publish_dir: web-config/dist
+          commit_message: "release ${{ needs.build.outputs.version }}"
 
   publish-draft:
     needs: build
