@@ -110,9 +110,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm ci
-        working-directory: web-config
-      - run: npm run build
+      - run: node build.mjs
         working-directory: web-config
       - uses: actions/upload-artifact@v4
         with:

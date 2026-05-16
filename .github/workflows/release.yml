@@ -137,9 +137,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm ci
-        working-directory: web-config
-      - run: npm run build
+      # No deps to install — build.mjs uses only Node built-ins. `npm run build`
+      # would also work but skipping npm shaves a few seconds.
+      - run: node build.mjs
         working-directory: web-config
       - name: Publish to ocor-mouse-config
         uses: peaceiris/actions-gh-pages@v3
