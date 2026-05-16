@@ -74,11 +74,20 @@ jobs:
           reqtool report --tag "${{ steps.ver.outputs.version }}" \
                         --output artifacts/traceability-matrix.md
 
-      - name: Changelog
-        uses: orhun/git-cliff-action@v3
-        with:
-          config: cliff.toml
-          args: --latest --strip header --output artifacts/CHANGELOG.md
+      - name: Install git-cliff
+        # Installing the binary directly is more robust than the orhun/git-cliff-action
+        # wrapper, whose Docker image at the time of writing depends on Debian Buster
+        # (now archived; apt-get update returns 404).
+        run: |
+          VER=2.6.1
+          curl -fsSL "https://github.com/orhun/git-cliff/releases/download/v${VER}/git-cliff-${VER}-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar -xz --strip-components=1 -C /usr/local/bin --wildcards "*/git-cliff"
+          git-cliff --version
+
+      - name: Generate CHANGELOG.md
+        run: |
+          git-cliff --config cliff.toml --latest --strip header --output artifacts/CHANGELOG.md
+          cat artifacts/CHANGELOG.md
 
       - name: Bundle zip
         run: |
