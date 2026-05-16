@@ -161,22 +161,33 @@ jobs:
           path: release-bundle/
 
       - name: Create draft release
+        # Build the asset list from whatever the build job actually produced.
+        # Optional artifacts (mouse-fw-update.bin etc.) only exist when MCUboot
+        # signing is wired into sysbuild; B0-only configs skip them.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -eu
           VERSION="${{ needs.build.outputs.version }}"
+          ASSETS=()
+          for f in release-bundle/ocor-mouse-*.zip \
+                   release-bundle/artifacts/mouse-fw.hex \
+                   release-bundle/artifacts/mouse-fw-update.bin \
+                   release-bundle/artifacts/mouse-merged.hex \
+                   release-bundle/artifacts/dongle-ls-fw.hex \
+                   release-bundle/artifacts/dongle-ls-fw-update.bin \
+                   release-bundle/artifacts/dongle-ls-merged.hex \
+                   release-bundle/artifacts/dongle-hs-fw.bin \
+                   release-bundle/artifacts/manifest.json \
+                   release-bundle/artifacts/traceability-matrix.md; do
+            [ -f "$f" ] && ASSETS+=("$f")
+          done
+          echo "Releasing assets:"; printf '  %s\n' "${ASSETS[@]}"
           gh release create "$VERSION" \
             --draft \
             --title "$VERSION" \
             --notes-file release-bundle/artifacts/CHANGELOG.md \
-            release-bundle/ocor-mouse-*.zip \
-            release-bundle/artifacts/mouse-fw.hex \
-            release-bundle/artifacts/mouse-fw-update.bin \
-            release-bundle/artifacts/dongle-ls-fw.hex \
-            release-bundle/artifacts/dongle-ls-fw-update.bin \
-            release-bundle/artifacts/dongle-hs-fw.bin \
-            release-bundle/artifacts/manifest.json \
-            release-bundle/artifacts/traceability-matrix.md
+            "${ASSETS[@]}"
 
   # Opens the per-release QA tracking issue. The `release-qa` label must be
   # bootstrapped once in the repo before the first run; see README/Phase 7.
