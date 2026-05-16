@@ -55,13 +55,24 @@ runs:
         pip install -r https://raw.githubusercontent.com/nrfconnect/sdk-zephyr/main/scripts/requirements-base.txt
         pip install pyelftools
 
-    - name: West init + update
+    - name: West init (idempotent)
+      shell: bash
+      # `west init -l .` is cheap and harmless if .west/ already exists
+      # (it errors out, which we swallow). Always run so the workspace is
+      # registered even after a cache hit.
+      run: west init -l . 2>/dev/null || true
+
+    - name: West update (skipped on cache hit)
       if: steps.west-cache.outputs.cache-hit != 'true'
       shell: bash
-      run: |
-        west init -l .
-        west update --narrow -o=--depth=1
-        west zephyr-export
+      run: west update --narrow -o=--depth=1
+
+    - name: West zephyr-export (always)
+      # Required every run: registers Zephyr with CMake's package registry
+      # so `find_package(Zephyr)` resolves. The registry lives in $HOME and
+      # is NOT cached.
+      shell: bash
+      run: west zephyr-export
 
     - name: Cache Zephyr SDK
       id: sdk-cache
