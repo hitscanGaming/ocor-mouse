@@ -8,6 +8,7 @@ menuconfig POLLING_RATE_ENABLE
 	bool "Enable polling rate timer module"
 	default y if DESKTOP_MOTION_SENSOR_ENABLE
 	default y if DESKTOP_SPI_MASTER
+	select COUNTER
 	help
 	  Enable the polling rate timer module for high-frequency
 	  sensor polling using hardware counters. Required by spi_master.c
