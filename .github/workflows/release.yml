@@ -43,13 +43,34 @@ jobs:
           build-args: release
 
       - name: Collect artifacts
+        # Factory hex always exists. The MCUboot-signed update bin only exists
+        # when sysbuild produces an MCUboot image; current configs use B0
+        # (Nordic Secure Immutable Bootloader) so signed.bin is absent. We copy
+        # whatever in-field-update artifact does exist; the manifest.json hashes
+        # whatever ends up in artifacts/.
         run: |
+          set -eu
           mkdir -p artifacts
-          cp build/mouse/gaming_mouse/zephyr/zephyr.hex artifacts/mouse-fw.hex
-          cp build/mouse/gaming_mouse/zephyr/zephyr.signed.bin artifacts/mouse-fw-update.bin
-          cp build/dongle-ls/gaming_mouse/zephyr/zephyr.hex artifacts/dongle-ls-fw.hex
-          cp build/dongle-ls/gaming_mouse/zephyr/zephyr.signed.bin artifacts/dongle-ls-fw-update.bin
-          cp dongle-hs-ch32v305/build/dongle-hs.bin artifacts/dongle-hs-fw.bin
+          cp build/mouse/gaming_mouse/zephyr/zephyr.hex            artifacts/mouse-fw.hex
+          cp build/dongle-ls/gaming_mouse/zephyr/zephyr.hex        artifacts/dongle-ls-fw.hex
+          cp dongle-hs-ch32v305/build/dongle-hs.bin                artifacts/dongle-hs-fw.bin
+          # Optional: signed update images (MCUboot path)
+          for img in mouse dongle-ls; do
+            for ext in signed.bin signed.hex; do
+              SRC=build/$img/gaming_mouse/zephyr/zephyr.$ext
+              if [ -f "$SRC" ]; then
+                cp "$SRC" "artifacts/${img}-fw-update.${ext#signed.}"
+              fi
+            done
+          done
+          # Merged hex (sysbuild combines bootloader + app into merged.hex)
+          for img in mouse dongle-ls; do
+            SRC=build/$img/merged.hex
+            if [ -f "$SRC" ]; then
+              cp "$SRC" "artifacts/${img}-merged.hex"
+            fi
+          done
+          ls -la artifacts/
 
       - uses: actions/setup-python@v5
         with:
